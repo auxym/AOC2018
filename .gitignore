@@ -1,4 +1,5 @@
+*
+!**/
+!*.*
+
 bin/
-nimcache/
-scratch.nim
-.#*

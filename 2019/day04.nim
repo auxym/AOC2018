@@ -1,23 +1,7 @@
-import sequtils
+import sequtils, utils
 
 const smin = 382345
 const smax = 843167
-
-func reverse[T](s: seq[T]): seq[T] =
-    result = newSeqUninitialized[T](s.len)
-    var j = 0
-    for i in countdown(s.high, s.low):
-        result[j] = s[i]
-        inc j
-
-func digits(i: int): seq[int] =
-    result = @[]
-    var
-        j = i
-    while j > 0:
-        result.add j mod 10
-        j = j div 10
-    result = result.reverse
 
 func hasDouble(s: seq[int]): bool =
     result = false
@@ -59,5 +43,7 @@ while passwdGuess <= smax:
             inc part2count
     inc passwdGuess
 
+doAssert part1count == 460
+doAssert part2count == 290
 echo part1count
 echo part2count

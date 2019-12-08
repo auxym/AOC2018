@@ -29,7 +29,7 @@ iterator filteriter[T](iter: iterator(): T {.closure.}, pred: proc(a: T): bool):
 func runAmplifiers(ampProg: seq[int], phase: array[5, AmpPhase]): int =
     result = 0
     for i in 0..4:
-        result = ampProg.execute(@[phase[i].int, result])[0]
+        result = ampProg.runAndGetOutput(@[phase[i].int, result])[0]
 
 let program = readFile("./input/day07.txt").getInts
 

@@ -1,40 +1,59 @@
-import intcode, utils, intsets
+import intcode, utils, algorithm
 
-type AmpPhase = range[0'i8..4'i8]
+iterator permutations[T: SomeInteger](a, b: T): seq[T] =
+    var
+        x = newSeqOfCap[T](b - a + 1)
+        hasNew = true
+    for i in a..b:
+        x.add i
+    while hasNew:
+        yield x
+        hasNew = x.nextPermutation
 
-iterator rangeProduct[I: static Positive, T: range](): array[I, T] {.closure.} =
-    var s: array[I, T]
-    block outer:
-        while true:
-            yield s
-            var i = s.high
-            while s[i] == T.high:
-                s[i] = T.low
-                if i == 0: break outer
-                i.dec
-            s[i].inc
-
-func hasNoDuplicate(s: array[5, AmpPhase]): bool =
-    result = true
-    var st = initIntSet()
-    for elem in s:
-        if elem in st: return false
-        st.incl elem.int
-
-iterator filteriter[T](iter: iterator(): T {.closure.}, pred: proc(a: T): bool): T =
-    for x in iter(): 
-        if pred(x):
-            yield x
-
-func runAmplifiers(ampProg: seq[int], phase: array[5, AmpPhase]): int =
-    result = 0
-    for i in 0..4:
-        result = ampProg.runAndGetOutput(@[phase[i].int, result])[0]
+# Part 1
 
 let program = readFile("./input/day07.txt").getInts
+const numAmps = 5
 
-var highSig: tuple[val: int, phase: array[5, AmpPhase]]
-for phase in filteriter(rangeProduct[5, AmpPhase], hasNoDuplicate):
+func runAmplifiers(ampProg: seq[int], phase: seq[int]): int =
+    result = 0
+    for i in 0..<numAmps:
+        result = ampProg.runAndGetOutput(@[phase[i], result])[0]
+
+var highSig: tuple[val: int, phase: seq[int]]
+for phase in permutations(0, 4):
     let sig = runAmplifiers(program, phase)
     if sig > highSig.val: highSig = (sig, phase)
 echo highSig
+doAssert highSig.val == 440880
+
+# Part 2
+
+func runFeedback(ampProg: seq[int], phase: seq[int]): int =
+    var
+        amps: array[numAmps, IntcodeProcess]
+        prevOutput: array[numAmps, int]
+
+    for i in 0..<numAmps:
+        amps[i] = initIntcode(ampProg)
+        amps[i].write phase[i]
+
+    amps[0].write 0
+
+    var i = 0
+    while amps[i].getStatus != icsHalted:
+        amps[i].execute
+        let cout = amps[i].read
+        let nextAmp = (i + 1) mod numAmps
+        amps[nextAmp].write cout
+        prevOutput[i] = cout
+        i = nextAmp
+
+    return prevOutput[^1]
+
+var highSigfb = int.low
+for phase in permutations(5, 9):
+    let outsig = runFeedback(program, phase)
+    if outsig > highSigfb: highSigfb = outsig
+echo highSigfb
+doAssert highSigfb == 3745599

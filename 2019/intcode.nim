@@ -2,7 +2,7 @@ import math, sequtils, deques
 
 type
     ParameterMode = enum pmImmediate, pmPosition
-    IntcodeStatus = enum
+    IntcodeStatus* = enum
         icsNotStarted
         icsRunning
         icsWaitingOnInput
@@ -10,20 +10,23 @@ type
     Instruction = tuple
         opcode: int8
         paramModes: array[4, ParameterMode]
-    IntcodeProcess = ref object
+    IntcodeProcess* = ref object
         memory: seq[int]
         ip: int
         stdin*: Deque[int]
         stdout*: Deque[int]
         status: IntcodeStatus
 
-func initIntCode(program: seq[int]): IntcodeProcess =
+func initIntCode*(program: seq[int]): IntcodeProcess =
     new result
     result.memory = program
     result.stdin = initDeque[int](16)
     result.stdout = initDeque[int](16)
     result.status = icsNotStarted
     result.ip = 0
+
+proc write*(p: IntcodeProcess, val: int) = p.stdin.addLast val
+proc read*(p: IntcodeProcess) : int = p.stdout.popFirst
 
 func getStatus*(p: IntcodeProcess): IntcodeStatus = p.status
 
@@ -67,9 +70,11 @@ proc execute*(process: var IntcodeProcess) =
                 continue
             let iout = process.memory[process.ip+1]
             process.memory[iout] = process.stdin.popFirst
+            #debugEcho "Read input " & $process.memory[iout] & " to mem " & $iout
             process.ip.inc 2
         of 4:
             let params = getParams(process.memory, process.ip, 1, pmodes)
+            #debugEcho "Write output: " & $params[0]
             process.stdout.addLast params[0]
             process.ip.inc 2
         of 5:

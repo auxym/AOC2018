@@ -38,3 +38,22 @@ func checksum(img: DsnImage): int =
     result = countOnes * countTwos
 
 echo input.checksum
+
+func flatten(img: DsnImage): DsnImage =
+    doAssert img.rank == 3
+    func combinePixels(a, b: uint8): uint8 =
+        if a == 2: b else: a
+    func combineLayers(a, b: DsnImage): DsnImage = 
+        a.map2(combinePixels, b)
+    let init = newTensorWith[uint8](img.shape[0], img.shape[1], 1, 2'u8)
+    result = img.fold(init, combineLayers, 2)[_,_,0]
+
+proc show(img: DsnImage) =
+    const blk = "█"
+    func toDisplayChar(a: uint8): string =
+        if a == 1'u8: blk else: " "
+    for row in img.axis(0):
+        echo toSeq(row).map(toDisplayChar).join
+
+let flattened = input.flatten
+flattened.show

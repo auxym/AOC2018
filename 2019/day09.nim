@@ -21,3 +21,6 @@ when false:
 
 let pt1out = runAndGetOutput(input, @[1])
 echo pt1out
+
+let pt2out = runAndGetOutput(input, @[2])
+echo pt2out

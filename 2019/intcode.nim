@@ -100,7 +100,7 @@ proc execute*(process: var IntcodeProcess) =
         let
             instr = process.memory[process.ip]
             (opcode, pmodes) = parseInstruction(instr)
-        var msg = fmt"ip: {process.ip} instr: {instr} opcode: {opcode} Param Modes: {pmodes}"
+        #var msg = fmt"ip: {process.ip} instr: {instr} opcode: {opcode} Param Modes: {pmodes}"
         case opcode:
         of 1:
             let params = process.readParams(2, pmodes)
@@ -147,7 +147,7 @@ proc execute*(process: var IntcodeProcess) =
             process.status = icsHalted
         else:
             raise newException(ValueError, "Invalid opcode " & $opcode)
-        debugEcho msg
+        #debugEcho msg
 
 func runAndGetOutput*(program: seq[BigInt], inputData: seq[BigInt]): seq[BigInt] =
     var pcs = initIntCode(program)

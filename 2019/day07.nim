@@ -12,33 +12,33 @@ iterator permutations[T: SomeInteger](a, b: T): seq[T] =
 
 # Part 1
 
-let program = readFile("./input/day07.txt").getInts
+let program = readIntCodeProgram("./input/day07.txt")
 const numAmps = 5
 
-func runAmplifiers(ampProg: seq[int], phase: seq[int]): int =
-    result = 0
+func runAmplifiers(ampProg: seq[BigInt], phase: seq[int]): BigInt =
+    result = 0.initBigInt
     for i in 0..<numAmps:
-        result = ampProg.runAndGetOutput(@[phase[i], result])[0]
+        result = ampProg.runAndGetOutput(@[phase[i].initBigInt, result])[0]
 
-var highSig: tuple[val: int, phase: seq[int]]
+var highSig: tuple[val: int64, phase: seq[int]]
 for phase in permutations(0, 4):
-    let sig = runAmplifiers(program, phase)
+    let sig = runAmplifiers(program, phase).toInt64
     if sig > highSig.val: highSig = (sig, phase)
 echo highSig
 doAssert highSig.val == 440880
 
 # Part 2
 
-func runFeedback(ampProg: seq[int], phase: seq[int]): int =
+func runFeedback(ampProg: seq[BigInt], phase: seq[int]): BigInt =
     var
         amps: array[numAmps, IntcodeProcess]
-        prevOutput: array[numAmps, int]
+        prevOutput: array[numAmps, BigInt]
 
     for i in 0..<numAmps:
         amps[i] = initIntcode(ampProg)
-        amps[i].write phase[i]
+        amps[i].write phase[i].initBigInt
 
-    amps[0].write 0
+    amps[0].write 0.initBigInt
 
     var i = 0
     while amps[i].getStatus != icsHalted:
@@ -51,9 +51,9 @@ func runFeedback(ampProg: seq[int], phase: seq[int]): int =
 
     return prevOutput[^1]
 
-var highSigfb = int.low
+var highSigfb = int64.low
 for phase in permutations(5, 9):
-    let outsig = runFeedback(program, phase)
+    let outsig = runFeedback(program, phase).toInt64
     if outsig > highSigfb: highSigfb = outsig
 echo highSigfb
 doAssert highSigfb == 3745599

@@ -70,17 +70,65 @@ function findbestbase(asteroids::Array{Point2D})::Tuple{Point2D, Integer}
     return bb
 end
 
-# input = """
-# .#..#
-# .....
-# #####
-# ....#
-# ...##
-# """ |> parseinput
-
 input = open(f->read(f, String), "./input/day10.txt") |> strip |> parseinput
 
-input.asteroids |> findbestbase |> println
+base, numvisible = findbestbase(input.asteroids)
+println("Base $base can see $numvisible asteroids")
 
-#countvisible(input.asteroids, Point2D(3, 4)) |> println
+function cart2polar(o::Point2D, a::Point2D, phase=0)::Point2D
+    oa = a - o
+    θ = atan(oa[2], oa[1]) - phase |> mod2pi
+    return Point2D(θ, norm(oa))
+end
 
+function polar2cart(o::Point2D, a::Point2D, phase=0)::Point2D
+    θ, r = a 
+    x = r * cos(θ + phase)
+    y = r * sin(θ + phase)
+    return Point2D(x, y) + o
+end
+
+function groupbyfirst(items::Array{T})::Array{Array{T}} where T
+    result::Array{Array{T}} = []
+    group::Array{T} = []
+    disc = items[1][1]
+    for it in items
+        if abs(it[1] - disc) < 1E-8
+            push!(group, it)
+        else
+            push!(result, group)
+            group = [it]
+            disc = it[1]
+        end
+    end
+    push!(result, group)
+    result
+end
+
+function blastasteroids(asteroids::Array{Point2D}, num::Integer)
+    phase = -π / 2
+    prasteroids = (x -> cart2polar(base, x, phase)).(asteroids)
+    prasteroids = filter(a -> a[2] > 0.01, prasteroids)
+    sort!(prasteroids)
+
+    anglegroups = groupbyfirst(prasteroids)
+
+    killcount = 0
+    while true && length(anglegroups) > 0
+        next = []
+        for g in anglegroups
+            victim = g[1]
+            #println("blast $victim ($(polar2cart(base, victim, phase)))")
+            killcount += 1
+            if killcount == num
+                return polar2cart(base, victim, phase)
+            end
+            if length(g) > 1
+                push!(next, g[2:end])
+            end
+        end
+        anglegroups = next
+    end
+end
+
+blastasteroids(input.asteroids, 200) |> println

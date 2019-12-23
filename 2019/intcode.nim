@@ -20,6 +20,7 @@ type
         stdout*: Deque[BigInt]
         status: IntcodeStatus
         relbase: int64
+    IntcodeProgram* = seq[BigInt]
 
 func getBigInts*(s: string): seq[BigInt] =
     func parseBigIntDecimal(s: string): BigInt =
@@ -38,7 +39,7 @@ func initIntCode*(program: seq[BigInt], memsize: Natural = default_mem_size): In
     result.ip = 0
     result.relbase = 0
 
-    result.memory = newSeq[BigInt](default_mem_size)
+    result.memory = newSeqWith(memsize, 0.initBigInt)
     for i, e in program:
         result.memory[i] = e
 
@@ -53,6 +54,7 @@ proc toInt64*(a: BigInt): int64 =
     doAssert initBigInt(result) == a
 
 proc write*(p: IntcodeProcess, val: BigInt) = p.stdin.addLast val
+proc write*(p: IntcodeProcess, val: SomeInteger) = p.stdin.addLast val.initBigInt
 proc read*(p: IntcodeProcess) : BigInt = p.stdout.popFirst
 
 func getStatus*(p: IntcodeProcess): IntcodeStatus = p.status

@@ -1,22 +1,24 @@
-import utils
+import utils, intsets
 
-let input = readFile("./input/day01_input.txt").getInts
+let input = readFile("./input/day01_input.txt").getInts.toIntSet
 
-func find2sum(nums: seq[int], sum: int): int =
-    for i, a in nums.pairs:
-        for b in nums[i+1 ..< nums.high]:
-            if a + b == sum:
-                return a * b
+func find2sum(nums: IntSet, sum: int): int =
+    for a in nums:
+        if a * 2 == sum:
+            continue
+        if nums.contains(sum - a):
+            return(a * (sum - a))
 
-func find3sum(nums: seq[int], sum: int): int =
-    for i, a in nums.pairs:
-        for j in (i + 1) ..< (nums.high):
-            let b = nums[j]
-            if a + b >= sum:
-                continue
-            else:
-                for c in nums[j + 1 ..< nums.high]:
-                    if a + b + c == sum: return a * b * c
+func find3sum(nums: IntSet, sum: int): int =
+    for a in nums:
+        for b in nums:
+            if a == b: continue
+
+            let c = sum - a - b
+            if c == a or c == b: continue
+
+            if nums.contains(c):
+                return a * b * c
 
 let part1ans = find2sum(input, 2020)
 doAssert part1ans == 1014171

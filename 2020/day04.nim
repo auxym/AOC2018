@@ -1,4 +1,4 @@
-import strutils, tables, regex
+import strutils, tables, regex, sequtils, sugar
 
 type Passport = TableRef[string, string]
 
@@ -15,19 +15,16 @@ func parseBatch(text: string): seq[Passport] =
     result.add pp
 
 func isValid(p: Passport): bool =
+  result = true
   for f in passportFields:
-    if f == "cid": continue
-    if f notin p:
+    if f != "cid" and f notin p:
       return false
-  return true
 
 let batch = parseBatch(readFile("./input/day04_input.txt"))
 
 # Part 1
 
-var pt1count = 0
-for pp in batch:
-  if pp.isValid: inc pt1count
+let pt1count = countIt(batch, isValid(it))
 doAssert pt1count == 206
 echo pt1count
 
@@ -38,56 +35,52 @@ type
   VTable = TableRef[string, seq[Validator]]
 
 func rangeCheckFactory(a, b: int): Validator =
-  func check(s: string): bool =
-    let x = parseInt(s)
-    x >= a and x <= b
-  check
+  (s: string) => s.parseInt in (a..b)
 
-func reMatchFactory(pat: static[string]): Validator =
-  func c(s: string): bool =
-    s.match(re((pat)))
-  c
+func reMatchFactory(pat: Regex): Validator =
+  (s: string) => s.match(pat)
 
 func validateHgt(hgt: string): bool =
   let pat = re"(\d\d\d?)(cm|in)"
   var m: RegexMatch
   if not hgt.match(pat, m):
     return false
-  else:
-    let unit: string = m.group(1, hgt)[0]
-    let hgtInt: int = m.group(0, hgt)[0].parseInt
-    var rng: (int, int)
 
-    case unit:
+  let unit: string = m.group(1, hgt)[0]
+  let hgtInt: int = m.group(0, hgt)[0].parseInt
+
+  let rng = case unit:
     of "cm":
-      rng = (150, 193)
+      (150..193)
     of "in":
-      rng = (59, 76)
+      (59..76)
+    else: # make compiler happy
+      raise newException(ValueError, "")
 
-    return hgtInt >= rng[0] and hgtInt <= rng[1]
+  return hgtInt in rng
 
 let validators = newTable[string, seq[Validator]]()
 
 validators["byr"] = @[]
-validators["byr"].add reMatchFactory(r"\d{4}")
+validators["byr"].add reMatchFactory(re"\d{4}")
 validators["byr"].add rangeCheckFactory(1920, 2002)
 
 validators["iyr"] = @[]
-validators["iyr"].add reMatchFactory(r"\d{4}")
+validators["iyr"].add reMatchFactory(re"\d{4}")
 validators["iyr"].add rangeCheckFactory(2010, 2020)
 
 validators["eyr"] = @[]
-validators["eyr"].add reMatchFactory(r"\d{4}")
+validators["eyr"].add reMatchFactory(re"\d{4}")
 validators["eyr"].add rangeCheckFactory(2020, 2030)
 
 validators["hcl"] = @[]
-validators["hcl"].add reMatchFactory("#[0-9a-f]{6}")
+validators["hcl"].add reMatchFactory(re"#[0-9a-f]{6}")
 
 validators["ecl"] = @[]
-validators["ecl"].add reMatchFactory("(amb)|(blu)|(brn)|(gry)|(grn)|(hzl)|(oth)")
+validators["ecl"].add reMatchFactory(re"(amb)|(blu)|(brn)|(gry)|(grn)|(hzl)|(oth)")
 
 validators["pid"] = @[]
-validators["pid"].add reMatchFactory(r"\d{9}")
+validators["pid"].add reMatchFactory(re"\d{9}")
 
 validators["hgt"] = @[]
 validators["hgt"].add validateHgt
@@ -100,9 +93,7 @@ func isValidpt2(pp: Passport, validators: VTable): bool =
         return false
   return true
 
-var pt2count = 0
-for pp in batch:
-  if pp.isValidpt2(validators): inc pt2count
+let pt2count = batch.countIt(isValidpt2(it, validators))
 echo pt2count
 doAssert pt2count == 123
 

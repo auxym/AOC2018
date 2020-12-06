@@ -26,3 +26,9 @@ func digits*(i: int): seq[int] =
         result.add j mod 10
         j = j div 10
     result = result.reversed
+
+func toBitSet*[T: Ordinal](s: openArray[T]): set[T] =
+    for e in s: result.incl e
+
+func toBitSet*(s: string): set[char] =
+    for c in s: result.incl c

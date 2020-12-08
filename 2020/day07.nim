@@ -1,4 +1,4 @@
-import strutils, utils, regex, strformat, sequtils, sets
+import strutils, utils, regex, strformat, sequtils
 
 const inputExp = re"""(?x)
   (?P<outerColor>[[:alpha:]]+\ [[:alpha:]]+)
@@ -9,8 +9,8 @@ const inputExp = re"""(?x)
     |no\ other\ bags)\.
   """
 
-func parseInput(text: string): AdjList[string] =
-  result = newAdjList[string]()
+func parseInput(text: string): WeightedAdjList[string] =
+  result = newWeightedAdjList[string]()
   var m: RegexMatch
 
   for line in text.strip.splitLines:
@@ -19,20 +19,23 @@ func parseInput(text: string): AdjList[string] =
     assert m.group("outerColor").len == 1
     let outerColor = m.group("outerColor", line)[0]
     assert outerColor notin result
+    result.addnode(outerColor)
 
-    var innerBags: HashSet[string]
-    for col in m.group(2, line) & m.group(4, line):
-      innerBags.incl col
-
-    result[outerColor] = innerBags
-    #echo fmt"{outerColor}: {$innerColors}"
+    for (n, col) in zip(m.group(1, line), m.group(2, line)):
+      result.addEdge(outerColor, col, n.parseInt)
+    for (n, col) in zip(m.group(3, line), m.group(4, line)):
+      result.addEdge(outerColor, col, n.parseInt)
 
 let allRules = parseInput(readFile("input/day07_input.txt"))
+const ourBag = "shiny gold"
 
 var pt1count = 0
 for outer in allRules.keys:
-  let path = allRules.dfs(outer, "shiny gold")
-  if path.len >= 2: inc pt1count
+  if outer == ourBag: continue
+  for visited in allRules.traverseDfs(outer):
+    if visited.elem == ourBag:
+      inc pt1count
+      break
 echo pt1count
 doAssert pt1count == 287
 
@@ -46,10 +49,14 @@ dark olive bags contain 3 faded blue bags, 4 dotted black bags.
 vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
 faded blue bags contain no other bags.
 dotted black bags contain no other bags.
+mirrored magenta bags contain 4 shiny turquoise bags, 2 bright gold bags, 4 plaid fuchsia bags, 4 wavy lime bags.
 """.parseInput
 
-proc echoParsedInput(g: AdjList[string]) =
-  for (outerbag, inner) in g.pairs:
-    echo fmt"{outerbag}: {inner}"
+proc echoParsedInput(g: WeightedAdjList[string]) =
+  for (outerbag, edgeTable) in g.pairs:
+    var contains = ""
+    for (incol, n) in edgeTable.pairs:
+      contains = contains & fmt"{n} {incol}, "
+    echo fmt"{outerbag}: {contains}"
 
 #echoParsedInput testRules

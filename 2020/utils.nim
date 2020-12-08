@@ -1,8 +1,9 @@
-import regex, sequtils, strutils, algorithm, sets, tables
+import regex, sequtils, strutils, algorithm, tables
 
 type
   Compass* = enum North, East, South, West
-  AdjList*[T] = TableRef[T, HashSet[T]]
+  WeightedEdge*[T] = tuple[elem: T, weight: int]
+  WeightedAdjList*[T] = TableRef[T, Table[T, int]]
 
 func cw*(c: Compass): Compass =
   if c == Compass.high:
@@ -35,27 +36,32 @@ func toBitSet*[T: Ordinal](s: openArray[T]): set[T] =
 func toBitSet*(s: string): set[char] =
   for c in s: result.incl c
 
-func newAdjList*[T](initialSize = 0): AdjList[T] =
+func newWeightedAdjList*[T](initialSize = 0): WeightedAdjList[T] =
   if initialSize <= 0:
-    newTable[T, HashSet[T]]()
+    newTable[T, Table[T, int]]()
   else:
-    newTable[T, HashSet[T]](initialSize)
+    newTable[T, Table[T, int]](initialSize)
 
-func dfs*[T](g: AdjList[T], start, target: T): seq[T] =
+func addEdge*[T](g: var WeightedAdjList[T], frm: T, to: T, weight: int = 1) =
+  if frm notin g:
+    g[frm] = {to: weight}.toTable
+  else:
+    g[frm][to] = weight
+
+func addNode*[T](g: var WeightedAdjList[T], node: T) =
+  if node notin g: g[node] = newSeq[WeightedEdge[T]]().toTable
+
+iterator traverseDfs*[T](g: WeightedAdjList[T], start: T): WeightedEdge[T] =
   var
-    stack: seq[seq[T]]
-    path: seq[T]
-    cur: T
-  stack.add @[start]
+    stack: seq[WeightedEdge[T]]
+    cur: WeightedEdge[T]
+  stack.add (start, 0)
   while stack.len > 0:
-    path = stack.pop
-    cur = path[^1]
-    if cur == target:
-      return path
-    elif cur in g:
-      for e in g[cur]:
-        stack.add path & e
-  return @[]
+    cur = stack.pop
+    yield cur
+    if cur.elem notin g: continue
+    for (elem, wt) in g[cur.elem].pairs:
+      stack.add (elem, wt)
 
 export
   tables.contains,

@@ -29,6 +29,7 @@ func parseInput(text: string): WeightedAdjList[string] =
 let allRules = parseInput(readFile("input/day07_input.txt"))
 const ourBag = "shiny gold"
 
+# Part 1
 var pt1count = 0
 for outer in allRules.keys:
   if outer == ourBag: continue
@@ -39,6 +40,17 @@ for outer in allRules.keys:
 echo pt1count
 doAssert pt1count == 287
 
+# Part 2
+func countBags(g: WeightedAdjList[string], outer: string): int =
+  result = 1
+  for (innerColor, n) in g[outer].pairs:
+    result.inc n * g.countBags(innerColor)
+let pt2count = allRules.countBags(ourBag) - 1 # Remove outer shiny bag from count
+echo pt2count
+doAssert pt2count == 48160
+
+
+# Test input
 let testRules = """
 light red bags contain 1 bright white bag, 2 muted yellow bags.
 dark orange bags contain 3 bright white bags, 4 muted yellow bags.
@@ -49,7 +61,6 @@ dark olive bags contain 3 faded blue bags, 4 dotted black bags.
 vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
 faded blue bags contain no other bags.
 dotted black bags contain no other bags.
-mirrored magenta bags contain 4 shiny turquoise bags, 2 bright gold bags, 4 plaid fuchsia bags, 4 wavy lime bags.
 """.parseInput
 
 proc echoParsedInput(g: WeightedAdjList[string]) =

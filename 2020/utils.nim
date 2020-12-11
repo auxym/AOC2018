@@ -63,6 +63,30 @@ iterator traverseDfs*[T](g: WeightedAdjList[T], start: T): WeightedEdge[T] =
     for (elem, wt) in g[cur.elem].pairs:
       stack.add (elem, wt)
 
+iterator combinations*(n, k: int): seq[int] =
+  let hi = n-1
+  var
+    i: int
+    result = toSeq(0..<k)
+  yield result
+  while true:
+    i = k - 1
+    if result[i] < hi:
+      inc result[i]
+    else:
+      dec i
+      while i >= 0 and result[i] >= (result[i+1] - 1):
+        dec i
+      if i < 0: break
+      inc result[i]
+    for j in (i+1..k-1):
+      result[j] = result[i] + (j - i)
+    yield result
+
+iterator combinations*[T](itms: seq[T], k: Natural): seq[T] =
+  for indices in combinations(itms.len, k):
+    yield indices.mapIt(itms[it])
+
 export
   tables.contains,
   tables.hasKey,

@@ -2,6 +2,7 @@ import regex, sequtils, strutils, algorithm, tables
 
 type
   Compass* = enum North, East, South, West
+  Vector* = tuple[x, y: int]
   WeightedEdge*[T] = tuple[elem: T, weight: int]
   WeightedAdjList*[T] = TableRef[T, Table[T, int]]
 
@@ -16,6 +17,25 @@ func ccw*(c: Compass): Compass =
     Compass.high
   else:
     c.pred
+
+func cw*(v: Vector): Vector = # Rotate 90 degrees clockwise
+  (v.y, -v.x)
+
+func ccw*(v: Vector): Vector = # Rotate 90 degrees counter-clockwise
+  (-v.y, v.x)
+
+func `+`*(a, b: Vector): Vector = (a.x + b.x, a.y + b.y)
+func `*`*(u: int, v: Vector): Vector = (u * v.x, u * v.y)
+
+func manhattan*(a, b: Vector): Natural =
+  abs(b.x - a.x) + abs(b.y - a.y)
+
+func toVector*(d: Compass): Vector =
+  case d
+  of North: (0, 1)
+  of East: (1, 0)
+  of West: (-1, 0)
+  of South: (0, -1)
 
 func getInts*(s: string): seq[int] =
   let expint = re"-?\d+"

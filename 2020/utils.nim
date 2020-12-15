@@ -1,4 +1,4 @@
-import regex, sequtils, strutils, algorithm, tables
+import regex, sequtils, strutils, algorithm, tables, strformat
 
 type
   Compass* = enum North, East, South, West
@@ -106,6 +106,33 @@ iterator combinations*(n, k: int): seq[int] =
 iterator combinations*[T](itms: seq[T], k: Natural): seq[T] =
   for indices in combinations(itms.len, k):
     yield indices.mapIt(itms[it])
+
+iterator product*(n, k: int): seq[int] =
+  let hi = n - 1
+  var
+    cur: seq[int]
+    j = 0
+  for i in 0..<k: cur.add 0
+  while true:
+    yield cur
+
+    j = cur.high
+    while j >= 0 and cur[j] == hi:
+      dec j
+    if j < 0:
+      break
+
+    cur[j].inc
+    for i in (j + 1)..cur.high:
+      cur[i] = 0
+
+iterator product*[T](itms: seq[T], repeat: Natural): seq[T] =
+  for indices in product(itms.len, repeat):
+    yield indices.mapIt(itms[it])
+
+func toBitString*(a: SomeInteger, size = 64): string =
+  let spec = fmt"0{size}b"
+  formatValue(result, a, spec)
 
 export
   tables.contains,

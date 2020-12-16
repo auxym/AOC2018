@@ -134,6 +134,10 @@ func toBitString*(a: SomeInteger, size = 64): string =
   let spec = fmt"0{size}b"
   formatValue(result, a, spec)
 
+iterator chain*[T](sequences: openArray[seq[T]]): T =
+  for s in sequences:
+    for e in s: yield e
+
 export
   tables.contains,
   tables.hasKey,

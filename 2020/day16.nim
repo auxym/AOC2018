@@ -1,4 +1,4 @@
-import utils, tables, regex, strutils, sequtils, strformat, sets
+import utils, tables, regex, strutils, sequtils, sets
 
 type
   Ticket = seq[int]
@@ -80,7 +80,7 @@ func getFieldMap(inp: Input): Table[string, int] =
           fieldNameSets[i].excl name
 
       if fieldNameSets[i].len == 1:
-        let fname = toSeq(fieldNameSets[i])[0]
+        let fname = fieldNameSets[i].pop()
         foundStack.add fname
         result[fname] = i
 
@@ -89,7 +89,7 @@ func getFieldMap(inp: Input): Table[string, int] =
     for (i, nameset) in fieldNameSets.mpairs:
       nameset.excl curName
       if nameset.len == 1:
-        let fname = toSeq(nameset)[0]
+        let fname = nameset.pop()
         foundStack.add fname
         result[fname] = i
 

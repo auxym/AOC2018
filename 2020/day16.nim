@@ -1,4 +1,4 @@
-import utils, tables, regex, strutils, sequtils, strformat
+import utils, tables, regex, strutils, sequtils, strformat, sets
 
 type
   Ticket = seq[int]
@@ -37,21 +37,71 @@ func isInAnyRange(ranges: seq[FieldRange], i: int): bool =
   ranges.anyIt(it.contains(i))
 
 
+func getInvalidVals(ranges: seq[FieldRange], t: Ticket): seq[int] =
+  t.filterIt(not isInAnyRange(ranges, it))
+
+
 func getErrorRate(inp: Input): int =
   let allRanges = toSeq(toSeq(inp.ranges.values).chain)
-  for x in chain(inp.nearbyTickets):
-    if not isInAnyRange(allRanges, x):
+  for t in inp.nearbyTickets:
+    for x in allRanges.getInvalidVals(t):
       result.inc x
 
 
 let pinput = readFile("./input/day16_input.txt").parseInput
-when false:
-  for (fn, r) in pinput.ranges.pairs: echo fmt"{fn}: {r}"
-  echo ""
-  echo fmt"My ticket: {pinput.myTicket}" & "\n"
-  for t in pinput.nearbyTickets: echo t
 
 # Part 1
 let pt1 = pinput.getErrorRate
 echo pt1
 doAssert pt1 == 26053
+
+# Part 2
+
+func isValidTicket(t: Ticket, rangetab: FieldRangeTable): bool =
+  let allRanges = toSeq(toSeq(rangetab.values).chain)
+  return allRanges.getInvalidVals(t).len == 0
+
+
+func getFieldMap(inp: Input): Table[string, int] =
+  let
+    validTickets = inp.nearbyTickets.filterIt(it.isValidTicket(inp.ranges))
+    ticketSize = validTickets[0].len
+    fieldNames = toSeq(inp.ranges.keys).toHashSet
+
+  var
+    fieldNameSets = newSeqWith(ticketSize, fieldNames)
+    foundStack: seq[string]
+
+  for ticket in validTickets:
+    for (i, val) in ticket.pairs:
+      for name in fieldNames:
+        if name notin fieldNameSets[i]: continue
+        if not isInAnyRange(inp.ranges[name], val):
+          fieldNameSets[i].excl name
+
+      if fieldNameSets[i].len == 1:
+        let fname = toSeq(fieldNameSets[i])[0]
+        foundStack.add fname
+        result[fname] = i
+
+  while foundStack.len > 0:
+    let curName = foundStack.pop()
+    for (i, nameset) in fieldNameSets.mpairs:
+      nameset.excl curName
+      if nameset.len == 1:
+        let fname = toSeq(nameset)[0]
+        foundStack.add fname
+        result[fname] = i
+
+  assert result.len == ticketSize
+
+func getPt2(ticket: Ticket, fieldMap: Table[string, int]): int =
+  result = 1
+  for (fieldName, fieldIndex) in fieldMap.pairs:
+    if fieldName.startsWith("departure"):
+      result = result * ticket[fieldIndex]
+
+let fieldMap = pinput.getFieldMap
+let pt2 = pinput.myTicket.getPt2(fieldMap)
+echo pt2
+doAssert pt2 == 1515506256421

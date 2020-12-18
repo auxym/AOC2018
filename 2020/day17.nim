@@ -93,13 +93,12 @@ const input = """
 .###.#..
 """
 
-when false:
-  var pgrid = input.initGrid(20)
-  for i in 0..<6:
-    pgrid = pgrid.doCycle
-  let pt1 = pgrid.countActive
-  echo pt1
-  doAssert pt1 == 295
+var pgrid = input.initGrid(20)
+for i in 0..<6:
+  pgrid = pgrid.doCycle
+let pt1 = pgrid.countActive
+echo pt1
+doAssert pt1 == 295
 
 # Part 2
 # Not fast but it works...
@@ -120,7 +119,6 @@ func initGrid4d(input: string, gridSize: int): PocketGrid =
 
 var pgrid2 = input.initGrid4d(20)
 for i in 0..<6:
-  echo i
   pgrid2 = pgrid2.doCycle
 let pt2 = pgrid2.countActive
 echo pt2

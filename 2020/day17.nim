@@ -4,15 +4,25 @@ type
   PocketGrid = Tensor[bool]
 
 func getAt[T](t: Tensor[T], coords: Tensor[int]): T =
-  if toSeq(coords).anyIt(it < 0):
-    raise newException(ValueError, "Invalid negative coord")
-  t[coords[0], coords[1], coords[2]]
+  assert t.rank == coords.shape[0]
+  case t.rank:
+  of 3:
+    t[coords[0], coords[1], coords[2]]
+  of 4:
+    t[coords[0], coords[1], coords[2], coords[3]]
+  else:
+    raise newException(ValueError, "Unsupported rank " & $(t.rank))
 
 
 proc putAt[T](t: var Tensor[T], coords: Tensor[int], val: T) =
-  if toSeq(coords).anyIt(it < 0):
-    raise newException(ValueError, "Invalid negative coord")
-  t[coords[0], coords[1], coords[2]] = val
+  assert t.rank == coords.shape[0]
+  case t.rank:
+  of 3:
+    t[coords[0], coords[1], coords[2]] = val
+  of 4:
+    t[coords[0], coords[1], coords[2], coords[3]] = val
+  else:
+    raise newException(ValueError, "Unsupported rank " & $(t.rank))
 
 
 func initGrid(input: string, gridSize: int): PocketGrid =
@@ -47,8 +57,9 @@ func countActiveNeighbors(grid: PocketGrid, coords: Tensor[int]): Natural =
 func doCycle(grid: PocketGrid): PocketGrid =
   result = grid.clone()
   for (coords, cur) in grid.pairs:
-    let an = grid.countActiveNeighbors(coords.toTensor)
-    #debugEcho an
+    let
+      ct = coords.toTensor
+      an = grid.countActiveNeighbors(ct)
     let future =
       if cur and an in {2, 3}:
         true
@@ -56,7 +67,7 @@ func doCycle(grid: PocketGrid): PocketGrid =
         true
       else:
         false
-    result.putAt(coords.toTensor, future)
+    result.putAt(ct, future)
 
 
 func countActive(grid: PocketGrid): Natural =
@@ -82,9 +93,35 @@ const input = """
 .###.#..
 """
 
-var pgrid = input.initGrid(20)
+when false:
+  var pgrid = input.initGrid(20)
+  for i in 0..<6:
+    pgrid = pgrid.doCycle
+  let pt1 = pgrid.countActive
+  echo pt1
+  doAssert pt1 == 295
+
+# Part 2
+# Not fast but it works...
+# (about 40 seconds on my modest laptop with a release build)
+func initGrid4d(input: string, gridSize: int): PocketGrid =
+  result = newTensor[bool]([gridSize, gridSize, gridSize, gridSize])
+  let
+    inputLines = input.strip.splitLines
+    inputSize = inputLines[0].len
+    inputCenter = inputSize div 2
+    gridCenter = gridSize div 2
+    input2grid = @[1, 1, 0, 0].toTensor() * (gridCenter - inputCenter) + @[0, 0, gridCenter, gridCenter].toTensor
+
+  for (irow, line) in inputLines.pairs:
+    for (icol, cr) in line.pairs:
+      let gridCoords = @[irow, icol, 0, 0].toTensor + input2grid
+      result.putAt(gridCoords, (cr == '#'))
+
+var pgrid2 = input.initGrid4d(20)
 for i in 0..<6:
-  pgrid = pgrid.doCycle
-let pt1 = pgrid.countActive
-echo pt1
-doAssert pt1 == 295
+  echo i
+  pgrid2 = pgrid2.doCycle
+let pt2 = pgrid2.countActive
+echo pt2
+doAssert pt2 == 1972

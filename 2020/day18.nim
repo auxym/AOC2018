@@ -19,14 +19,12 @@ type Parser = object
 
 type Rule = proc(p: var Parser): Expr
 
-const digits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}
-
 func isAtEnd(p: Parser): bool = p.current > p.text.high
 func previous(p: Parser): char = p.text[p.current - 1]
 func peek(p: Parser): char = p.text[p.current]
 
 func advance(p: var Parser): char =
-  if p.current <= p.text.high: inc p.current
+  if not p.isAtEnd: inc p.current
   result = p.previous
 
 func match(p: var Parser, tokens: set[char]): bool =
@@ -37,7 +35,7 @@ func match(p: var Parser, tokens: set[char]): bool =
 
 template createPrimaryRule(name: untyped, base: Rule) =
   func name(p: var Parser): Expr =
-    if p.match(digits):
+    if p.match({'0'..'9'}):
       return Expr(kind: ekNumber, val: parseInt($p.previous))
 
     elif p.match({'('}):

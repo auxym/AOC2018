@@ -1,4 +1,5 @@
 import regex, sequtils, strutils, algorithm, tables, strformat
+import terminal, colors
 
 type
   Compass* = enum North, East, South, West
@@ -137,6 +138,19 @@ func toBitString*(a: SomeInteger, size = 64): string =
 iterator chain*[T](sequences: openArray[seq[T]]): T =
   for s in sequences:
     for e in s: yield e
+
+proc dEchoHl*(s: string, hlPos: set[int16]) =
+  var hlState = false
+  for i, c in s.pairs:
+    if i.int16 in hlPos and not hlState:
+      stdout.setForegroundColor(fgRed)
+      hlState = true
+    elif hlState and i.int16 notin hlPos:
+      stdout.resetAttributes
+      hlState = false
+    stdout.write(c)
+  stdout.resetAttributes
+  stdout.write "\n"
 
 export
   tables.contains,

@@ -17,6 +17,8 @@ type Parser = object
   text: string
   current: int
 
+type Rule = proc(p: var Parser): Expr
+
 const digits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}
 
 func isAtEnd(p: Parser): bool = p.current > p.text.high
@@ -33,34 +35,38 @@ func match(p: var Parser, tokens: set[char]): bool =
     return true
   return false
 
+template createPrimaryRule(name: untyped, base: Rule) =
+  func name(p: var Parser): Expr =
+    if p.match(digits):
+      return Expr(kind: ekNumber, val: parseInt($p.previous))
+
+    elif p.match({'('}):
+      result = p.base
+      doAssert p.advance == ')'
+
+template createBinaryRule(name: untyped, parent: Rule, opset: set[char]) =
+  func name(p: var Parser): Expr =
+    result = p.parent
+    while p.match(opset):
+      let
+        opr = p.previous
+        right = p.parent
+      result = Expr(kind: ekBinary, op: opr, l: result, r: right)
+
 func parseExpr(p: var Parser): Expr
-
-func parsePrimary(p: var Parser): Expr =
-  if p.match(digits):
-    return Expr(kind: ekNumber, val: parseInt($p.previous))
-
-  elif p.match({'('}):
-    result = p.parseExpr
-    doAssert p.advance == ')'
-
-func parseAddMul(p: var Parser): Expr =
-  result = p.parsePrimary
-  while p.match({'+', '*'}):
-    let
-      operator = p.previous
-      right = p.parsePrimary
-    result = Expr(kind: ekBinary, l: result, r: right, op: operator)
+createPrimaryRule(parsePrimary, parseExpr)
+createBinaryRule(parseAddMul, parsePrimary, {'+', '*'})
 
 func parseExpr(p: var Parser): Expr =
   result = p.parseAddMul
 
-func parse(text: string): Expr =
+func parse(text: string, base: Rule): Expr =
   var prs: Parser
   prs.current = 0
   # Note: we don't need to do a lexing step, once we remove whitespace, then
   # every char is a token.
   prs.text = text.replace(" ", "")
-  return prs.parseExpr
+  return base(prs)
 
 func `$`(e: Expr): string =
   case e.kind:
@@ -75,12 +81,27 @@ func eval(e: Expr): int =
     case e.op:
       of '+': e.l.eval + e.r.eval
       of '*': e.l.eval * e.r.eval
-      else: -1 shl 60
+      else: -1 shl 60 # Error
 
-func eval(s: string): int = s.parse.eval
+func eval(s: string): int = s.parse(parseExpr).eval
 
 let inputLines = readFile("./input/day18_input.txt").strip.splitLines
 
 let pt1 = inputLines.map(eval).foldl(a+b)
 echo pt1
 doAssert pt1 == 75592527415659
+
+# Part 2
+
+func parseExpr2(p: var Parser): Expr
+createPrimaryRule(parsePrimary2, parseExpr2)
+createBinaryRule(parseAdd, parsePrimary2, {'+'})
+createBinaryRule(parseMul, parseAdd, {'*'})
+
+func parseExpr2(p: var Parser): Expr =
+  result = p.parseMul
+
+func eval2(s: string): int = s.parse(parseExpr2).eval
+let pt2 = inputLines.map(eval2).foldl(a+b)
+echo pt2
+doAssert pt2 == 360029542265462

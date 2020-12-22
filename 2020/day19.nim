@@ -1,5 +1,8 @@
 import strutils, regex, utils, sequtils
 
+# Ugh, this took forever and it's really confusing to follow the recursive logic,
+# but it does work, even in the general case.
+
 type RuleKind = enum rkLiteral, rkRefs
 
 type Rule = ref object
@@ -9,14 +12,11 @@ type Rule = ref object
     of rkRefs:
       groups: seq[seq[int]]
 
-type RuleGraph = seq[Rule]
-
 type Parser = object
-  current: int
   text: string
-  rules: RuleGraph
+  rules: seq[Rule]
 
-func parseRules(text: string): RuleGraph =
+func parseRules(text: string): seq[Rule] =
   result = newSeq[Rule](256)
   let pat_lit = "\"([ab])\"".re
 
@@ -42,74 +42,51 @@ func `$`(r: Rule): string =
   of rkRefs:
     "(" & r.groups.mapIt(it.join(" ")).join(" | ") & ")"
 
-func isAtEnd(p: Parser): bool = p.current > p.text.high
-func previous(p: Parser): char = p.text[p.current - 1]
-func peek(p: Parser): char = p.text[p.current]
+func matchRule(p: Parser, ruleIdx: int, start: seq[int]): seq[int]
 
-func advance(p: var Parser): char =
-  if not p.isAtEnd: inc p.current
-  result = p.previous
+func matchSeq(p: Parser, ruleSeq: seq[int], at: int): seq[int] =
+  result = p.matchRule(ruleSeq[0], @[at])
+  if result.len > 0 and ruleSeq.len > 1:
+    var newResult: seq[int]
+    for pos in result:
+      newResult.add matchSeq(p, ruleSeq[1..^1], pos)
+    result = newResult
 
-func matchChar(p: var Parser, ch: char): bool =
-  if not p.isAtEnd and p.peek == ch:
-    discard p.advance
-    return true
-  return false
-
-proc matchRule(p: var Parser, ruleIdx: int): bool
-
-proc matchSeq(p: var Parser, s: seq[int]): bool =
-  let start = p.current
-  for i in s:
-    if not p.matchRule(i):
-      p.current = start
-      return false
-  return true
-
-proc matchChoice(p: var Parser, choices: seq[seq[int]]): bool =
-  let start = p.current
-  for chc in choices:
-    if p.matchSeq(chc):
-      return true
-    p.current = start
-  return false
-
-proc matchRule(p: var Parser, ruleIdx: int): bool =
+func matchRule(p: Parser, ruleIdx: int, start: seq[int]): seq[int] =
   let rl = p.rules[ruleIdx]
-  result = case rl.kind:
-  of rkLiteral:
-    p.matchChar(rl.c)
-  of rkRefs:
-    p.matchChoice(rl.groups)
+  var validEndPos: seq[int]
+  for spos in start:
+    case rl.kind:
+    of rkLiteral:
+      if spos <= p.text.high and p.text[spos] == rl.c:
+        validEndPos.add (spos + 1)
+    of rkRefs:
+      for choice in rl.groups:
+        validEndPos.add p.matchSeq(choice, spos)
+  return validEndPos
 
-proc isValidMessage(msg: string, rules: RuleGraph): bool =
-  var prs = Parser(current: 0, text: msg.strip, rules: rules)
-  result = prs.matchRule(0) and prs.isAtEnd
+func isValidMessage(msg: string, rules: seq[Rule]): bool =
+  var prs = Parser(text: msg.strip, rules: rules)
+  let matchResult = prs.matchRule(0, @[0])
+  return matchResult.anyIt(it > msg.high)
 
-when true:
-  let testRules = """
-  0: 4 1 5
-  1: 2 3 | 3 2
-  2: 4 4 | 5 5
-  3: 4 5 | 5 4
-  4: "a"
-  5: "b"
-  """.parseRules
+let
+  inputText = readfile("./input/day19_input.txt").strip
+  msgRules = inputText.split("\n\n")[0].parseRules
+  messageList = inputText.split("\n\n")[1].splitLines
 
-  assert "ababbb".isValidMessage(testRules)
-  assert "abbbab".isValidMessage(testRules)
-  assert not "aaabbb".isValidMessage(testRules)
-  assert not "bababa".isValidMessage(testRules)
-  assert not "aaaabbb".isValidMessage(testRules)
+let pt1 = messageList.countIt(it.isValidMessage(msgRules))
+echo pt1
+doAssert pt1 == 120
 
-when true:
-  let
-    inputText = readfile("./input/day19_input.txt").strip
-    msgRules = inputText.split("\n\n")[0].parseRules
-    messageList = inputText.split("\n\n")[1].splitLines
+# Part 2
+func modifyRulesPt2(r: seq[Rule]): seq[Rule] =
+  result = r
+  result[8] = Rule(kind: rkRefs, groups: @[@[42], @[42, 8]])
+  result[11] = Rule(kind: rkRefs, groups: @[@[42, 31], @[42, 11, 31]])
 
-  var pt1 = 0
-  for msg in messageList:
-    if msg.isValidMessage(msgRules): inc pt1
-  echo pt1
-  doAssert pt1 == 120
+let
+  rulesPt2 = msgRules.modifyRulesPt2
+  pt2 = messageList.countIt(it.isValidMessage(rulesPt2))
+echo pt2
+doAssert pt2 == 350

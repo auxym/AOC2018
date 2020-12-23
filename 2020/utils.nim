@@ -1,5 +1,5 @@
 import regex, sequtils, strutils, algorithm, tables, strformat
-import terminal, colors
+import terminal
 
 type
   Compass* = enum North, East, South, West

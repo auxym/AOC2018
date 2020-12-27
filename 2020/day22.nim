@@ -1,7 +1,5 @@
 import strutils, deques, regex, sets, hashes
 
-# Warning: slow, runs in about 67 s on my machine
-
 type
   Player = enum p1, p2
   Deck = Deque[uint8]
@@ -58,7 +56,7 @@ doAssert pt1 == 32199
 # Part 2
 func hash(d: Deck): Hash =
   var h: Hash
-  for card in d: h = h !& card.int
+  for card in d: h = h !& card.int8
   result = !$h
 
 func copyFirstN[T](d: Deque[T], n: Natural): Deque[T] =
@@ -70,11 +68,14 @@ func copyFirstN[T](d: Deque[T], n: Natural): Deque[T] =
   assert d[n - 1] == result.peekLast
 
 proc playGame2(game: var GameState): GameResult =
-  var roundsPlayed: HashSet[GameState]
+  # Use set of hashes, instead of GameStates, for performance reasons: about 400X faster
+  # Perf tip from u/SuperSmurfen: https://www.reddit.com/r/adventofcode/comments/ki3r5t/2020_day_22_part_2_is_there_a_way_to_speed_up_the/ggonv29
+  var roundsPlayed: HashSet[Hash]
+
   while not game.isFinished:
-    if game in roundsPlayed:
+    if game.hash in roundsPlayed:
       return GameResult(winner: p1, score: game[p1].getScore)
-    roundsPlayed.incl game
+    roundsPlayed.incl game.hash
 
     let cards: array[Player, uint8] = [game[p1].popFirst, game[p2].popFirst]
     assert cards[p1] != cards[p2]
@@ -97,4 +98,6 @@ proc playGame2(game: var GameState): GameResult =
   result.score = game[result.winner].getScore
 
 var pt2game = inputDecks
-echo pt2game.playGame2
+let pt2 = pt2game.playGame2.score
+echo pt2
+doAssert pt2 == 33780

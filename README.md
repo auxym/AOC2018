@@ -1,1 +1,1 @@
-This repo contains my solutions to [Advent of Code](https://adventofcode.com/).
+This repo contains my solutions to [Advent of Code](https://adventofcode.com/). Mostly written in [Nim](https://nim-lang.org/).

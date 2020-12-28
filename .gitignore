@@ -6,4 +6,4 @@ bin/
 .vscode/
 */scratch.nim
 *.exe
-
+profile_results.txt
